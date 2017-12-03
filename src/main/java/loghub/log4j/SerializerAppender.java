@@ -79,7 +79,7 @@ public abstract class SerializerAppender extends AppenderSkeleton {
     }
 
     /**
-     * The class name of a implementation of a {@link Seralizer} interface.
+     * The class name of a implementation of a {@link Serializer} interface.
      * @param serializer
      */
     public void setSerializer(String serializer) {
