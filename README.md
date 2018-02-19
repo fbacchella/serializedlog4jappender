@@ -48,6 +48,10 @@ A sample declaration is:
     log4j.appender.A1.application=some_application_name
     log4j.rootLogger=TRACE, A1
 
+Kakfa logs using sl4j, but if you add the dependency slf4j-log4j12, it will log using log4j on himself, you should not forgot to add something like:
+
+    log4j.logger.org.apache.kafka=LEVEL,otherAppender
+
 ##ZMQAppender
 
 A ØMQ (ZeroMQ, http://zeromq.org) Appender for log4j, that serialize Log4JEvent using the java serialization format.
