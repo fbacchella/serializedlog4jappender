@@ -6,7 +6,7 @@
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>kafkalog4jappender</name>
+    <name>serializedlog4jappender</name>
     <url>https://github.com/fbacchella/serializedlog4jappender</url>
 
     <properties>

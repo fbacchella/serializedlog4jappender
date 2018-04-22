@@ -77,10 +77,7 @@ public class ZMQAppender extends SerializerAppender {
         if (closed) {
             return;
         }
-        try {
-            socket.close();
-        } catch (Exception e) {
-        }
+        socket.close();
         if(localCtx) {
             ctx.term();
         }
@@ -94,24 +91,9 @@ public class ZMQAppender extends SerializerAppender {
     protected  void send(byte[] content) {
         try {
             socket.send(content);
-        } catch (zmq.ZError.IOException e ) {
-            try {
-                socket.close();
-                closed = true;
-            } catch (Exception e1) {
-            }
-        } catch (java.nio.channels.ClosedSelectorException e ) {
-            try {
-                socket.close();
-                closed = true;
-            } catch (Exception e1) {
-            }
-        } catch (org.zeromq.ZMQException e ) {
-            try {
-                socket.close();
-                closed = true;
-            } catch (Exception e1) {
-            }
+        } catch (zmq.ZError.IOException | java.nio.channels.ClosedSelectorException | org.zeromq.ZMQException e ) {
+            socket.close();
+            closed = true;
         }
     }
 

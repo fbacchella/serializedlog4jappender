@@ -19,28 +19,10 @@ public class JavaSerializer implements Serializer {
         event.getThrowableStrRep();
         event.getLocationInformation();
 
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        ObjectOutputStream oos = null;
-        try {
-            oos = new ObjectOutputStream(buffer);
+        try (ByteArrayOutputStream buffer = new ByteArrayOutputStream() ; ObjectOutputStream oos = new ObjectOutputStream(buffer)){
             oos.writeObject(event);
             oos.flush();
-            byte bytes[] = buffer.toByteArray();
-            oos.close();
-            buffer.close();
-            return bytes;
-        }
-        finally {
-            if(oos != null) {
-                try {
-                    oos.close();
-                } catch (IOException e) {
-                }
-            }
-            try {
-                buffer.close();
-            } catch (IOException e) {
-            }
+            return buffer.toByteArray();
         }
     }
 
