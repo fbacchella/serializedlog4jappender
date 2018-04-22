@@ -24,15 +24,24 @@ import static org.apache.kafka.clients.producer.ProducerConfig.KEY_SERIALIZER_CL
 import static org.apache.kafka.clients.producer.ProducerConfig.RETRIES_CONFIG;
 import static org.apache.kafka.clients.producer.ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.common.config.SaslConfigs.SASL_KERBEROS_SERVICE_NAME;
+import static org.apache.kafka.common.config.SaslConfigs.SASL_JAAS_CONFIG;
 import static org.apache.kafka.common.config.SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG;
 import static org.apache.kafka.common.config.SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG;
 import static org.apache.kafka.common.config.SslConfigs.SSL_KEYSTORE_TYPE_CONFIG;
 import static org.apache.kafka.common.config.SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG;
 import static org.apache.kafka.common.config.SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.security.NoSuchAlgorithmException;
+import java.security.URIParameter;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+
+import javax.security.auth.login.AppConfigurationEntry;
+import javax.security.auth.login.Configuration;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -59,6 +68,7 @@ public class KafkaAppender extends SerializerAppender {
     private String sslKeystorePassword;
     private String saslKerberosServiceName;
     private String clientJaasConfPath;
+    private String clientJaasConfUri;
     private String kerb5ConfPath;
 
 
@@ -163,6 +173,10 @@ public class KafkaAppender extends SerializerAppender {
         this.clientJaasConfPath = clientJaasConfPath;
     }
 
+    public void setClientJaasConfUri(String clientJaasConfUri) {
+        this.clientJaasConfUri = clientJaasConfUri;
+    }
+
     public void setKerb5ConfPath(String kerb5ConfPath) {
         this.kerb5ConfPath = kerb5ConfPath;
     }
@@ -189,6 +203,10 @@ public class KafkaAppender extends SerializerAppender {
 
     public String getKerb5ConfPath() {
         return kerb5ConfPath;
+    }
+
+    public String getClientJaasConfUri() {
+        return clientJaasConfUri;
     }
 
     @Override
@@ -230,14 +248,18 @@ public class KafkaAppender extends SerializerAppender {
                 }
             }
 
+            // Was a jaas configuration URI given ?
+            if (clientJaasConfUri != null) {
+                props.put(SASL_JAAS_CONFIG, readJaasConfig(clientJaasConfPath));
+            } else  if (clientJaasConfPath != null) {
+                System.setProperty("java.security.auth.login.config", clientJaasConfPath);
+            }
+
             // Is security protocol sasl with kerberos ?
             if (securityProtocol.contains("SASL") && saslKerberosServiceName != null) {
                 props.put(SASL_KERBEROS_SERVICE_NAME, saslKerberosServiceName);
                 if (kerb5ConfPath != null) {
                     System.setProperty("java.security.krb5.conf", kerb5ConfPath);
-                }
-                if (clientJaasConfPath != null) {
-                    System.setProperty("java.security.auth.login.config", clientJaasConfPath);
                 }
             }
         }
@@ -247,6 +269,29 @@ public class KafkaAppender extends SerializerAppender {
         producer = getKafkaProducer(props);
         LogLog.debug("Kafka producer connected to " + brokerList);
         LogLog.debug("Logging for topic: " + topic);
+    }
+
+    protected String readJaasConfig(String clientJaasConfPath) {
+        try {
+            URIParameter cp = new URIParameter(new URI(clientJaasConfPath));
+            String jaasName = cp.getURI().getFragment();
+            if (jaasName == null) jaasName = "KafkaServer";
+            Configuration jc = javax.security.auth.login.Configuration.getInstance("JavaLoginConfig", cp);
+            StringBuilder buffer = new StringBuilder();
+            for (AppConfigurationEntry entry: jc.getAppConfigurationEntry(jaasName)) {
+                String ctrlFlag = entry.getControlFlag().toString();
+                ctrlFlag = ctrlFlag.substring(ctrlFlag.indexOf(": ") + 2);
+                buffer.append(String.format("%s %s", entry.getLoginModuleName(), ctrlFlag));
+                for (Map.Entry<String, ?> e: entry.getOptions().entrySet()) {
+                    buffer.append(String.format(" %s=\"%s\"", e.getKey(), e.getValue()));
+                }
+                buffer.append(";");
+            }
+            return buffer.toString();
+        } catch (NoSuchAlgorithmException | URISyntaxException e) {
+            errorHandler.error("JavaLoginConfig unavailable", e, ErrorCode.GENERIC_FAILURE);
+            return null;
+        }
     }
 
     /**

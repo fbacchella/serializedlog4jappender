@@ -23,6 +23,11 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Properties;
 
 public class KafkaLog4jAppenderTest {
@@ -63,11 +68,29 @@ public class KafkaLog4jAppenderTest {
                 5, ((MockKafkaLog4jAppender) (Logger.getRootLogger().getAppender("KAFKA"))).getHistory().size());
     }
 
+    @Test
+    public void testJaasParsing() throws URISyntaxException {
+        URL kUrl = this.getClass().getClassLoader().getResource("kafka_jaas.conf");
+        URI kUri = new URI(kUrl + "#KafkaServer");
+        PropertyConfigurator.configure(getLog4jConfig(Collections.singletonMap("log4j.appender.KAFKA.clientJaasConfUri", kUri.toString())));
+        KafkaAppender app = (KafkaAppender) (Logger.getRootLogger().getAppender("KAFKA"));
+        String parsedJaasLine = app.readJaasConfig(app.getClientJaasConfUri());
+        Assert.assertTrue(parsedJaasLine.contains("com.sun.security.auth.module.Krb5LoginModule required "));
+        Assert.assertTrue(parsedJaasLine.contains(" keyTab=\"/etc/security/keytabs/kafka_server.keytab\""));
+        Assert.assertTrue(parsedJaasLine.contains("org.apache.kafka.common.security.plain.PlainLoginModule optional "));
+        Assert.assertTrue(parsedJaasLine.contains(" username=\"admin\""));
+    }
+
     private byte[] getMessage(int i) throws UnsupportedEncodingException {
         return ("test_" + i).getBytes("UTF-8");
     }
 
     private Properties getLog4jConfig() {
+        Map<String, String> otherProps = Collections.emptyMap();
+        return getLog4jConfig(otherProps);
+    }
+
+    private Properties getLog4jConfig(Map<String, String> otherProps) {
         Properties props = new Properties();
         props.put("log4j.rootLogger", "INFO, KAFKA");
         props.put("log4j.appender.KAFKA", loghub.log4j.MockKafkaLog4jAppender.class.getName());
@@ -76,6 +99,7 @@ public class KafkaLog4jAppenderTest {
         props.put("log4j.appender.KAFKA.RequiredNumAcks", "1");
         props.put("log4j.appender.KAFKA.SyncSend", "false");
         props.put("log4j.logger.kafka.log4j", "INFO, KAFKA");
+        props.putAll(otherProps);
         return props;
     }
 }
