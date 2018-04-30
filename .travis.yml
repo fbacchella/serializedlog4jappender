@@ -5,3 +5,6 @@ jdk:
 cache:
   directories:
   - $HOME/.m2
+notifications:
+  irc:
+  - irc.freenode.org#jrds
