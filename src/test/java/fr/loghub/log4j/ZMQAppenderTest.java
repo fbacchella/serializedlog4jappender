@@ -28,7 +28,7 @@ import zmq.socket.Sockets;
 
 public class ZMQAppenderTest {
 
-    @Test(timeout=5000)
+    @Test(timeout=10000)
     public void testParallel() throws InterruptedException, ExecutionException, TimeoutException {
         final int count = 5000;
         final ZContext ctx = new ZContext(1);
@@ -145,7 +145,7 @@ public class ZMQAppenderTest {
         for (int i = 0; i < 2 ; i++) {
             threads[count + i].start();
         }
-        if (mutex.tryLock(5000, TimeUnit.MILLISECONDS)) {
+        if (mutex.tryLock(10000, TimeUnit.MILLISECONDS)) {
             mutex.unlock();
         } else {
             Assert.fail("tryLock failed");
