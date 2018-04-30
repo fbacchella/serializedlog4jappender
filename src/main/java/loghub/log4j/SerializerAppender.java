@@ -37,7 +37,6 @@ public abstract class SerializerAppender extends AppenderSkeleton {
                 errorHandler.error("failed to create serializer", e, ErrorCode.GENERIC_FAILURE);
             }
         }
-
         if (hostname == null) {
             try {
                 hostname = InetAddress.getLocalHost().getHostName();
@@ -46,7 +45,6 @@ public abstract class SerializerAppender extends AppenderSkeleton {
             } 
         }
         subOptions();
-
     }
 
     protected abstract void subOptions();
