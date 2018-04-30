@@ -1,4 +1,4 @@
-package loghub.log4j;
+package fr.loghub.log4j;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -22,6 +22,8 @@ import org.junit.Test;
 import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
 
+import fr.loghub.log4j.JavaSerializer;
+import fr.loghub.log4j.ZMQAppender;
 import zmq.socket.Sockets;
 
 public class ZMQAppenderTest {

@@ -1,4 +1,4 @@
-package loghub.log4j;
+package fr.loghub.log4j;
 
 import java.io.IOException;
 

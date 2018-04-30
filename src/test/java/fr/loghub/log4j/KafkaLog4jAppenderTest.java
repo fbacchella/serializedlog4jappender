@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package loghub.log4j;
+package fr.loghub.log4j;
 
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.junit.Assert;
 import org.junit.Test;
+
+import fr.loghub.log4j.KafkaAppender;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -39,7 +41,7 @@ public class KafkaLog4jAppenderTest {
         // host missing
         Properties props = new Properties();
         props.put("log4j.rootLogger", "INFO");
-        props.put("log4j.appender.KAFKA", loghub.log4j.MockKafkaLog4jAppender.class.getName());
+        props.put("log4j.appender.KAFKA", fr.loghub.log4j.MockKafkaLog4jAppender.class.getName());
         props.put("log4j.appender.KAFKA.Topic", "test-topic");
         props.put("log4j.logger.kafka.log4j", "INFO, KAFKA");
         PropertyConfigurator.configure(props);
@@ -50,7 +52,7 @@ public class KafkaLog4jAppenderTest {
         // topic missing
         Properties props = new Properties();
         props.put("log4j.rootLogger", "INFO");
-        props.put("log4j.appender.KAFKA", loghub.log4j.MockKafkaLog4jAppender.class.getName());
+        props.put("log4j.appender.KAFKA", fr.loghub.log4j.MockKafkaLog4jAppender.class.getName());
         props.put("log4j.appender.KAFKA.brokerList", "127.0.0.1:9093");
         props.put("log4j.logger.kafka.log4j", "INFO, KAFKA");
         PropertyConfigurator.configure(props);
@@ -93,7 +95,7 @@ public class KafkaLog4jAppenderTest {
     private Properties getLog4jConfig(Map<String, String> otherProps) {
         Properties props = new Properties();
         props.put("log4j.rootLogger", "INFO, KAFKA");
-        props.put("log4j.appender.KAFKA", loghub.log4j.MockKafkaLog4jAppender.class.getName());
+        props.put("log4j.appender.KAFKA", fr.loghub.log4j.MockKafkaLog4jAppender.class.getName());
         props.put("log4j.appender.KAFKA.BrokerList", "127.0.0.1:9093");
         props.put("log4j.appender.KAFKA.Topic", "test-topic");
         props.put("log4j.appender.KAFKA.RequiredNumAcks", "1");
