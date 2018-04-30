@@ -79,7 +79,7 @@ public class ZMQAppender extends SerializerAppender {
             return;
         }
 
-        logQueue = new ArrayBlockingQueue<byte[]>(1000);
+        logQueue = new ArrayBlockingQueue<byte[]>(hwm);
         publishingThread = new Thread() {
 
             @Override
@@ -124,6 +124,7 @@ public class ZMQAppender extends SerializerAppender {
                         assert sended : "failed sending";
                     }
                 } catch (zmq.ZError.IOException | java.nio.channels.ClosedSelectorException | org.zeromq.ZMQException e ) {
+                    errorHandler.error("Failed ZMQ socket", e, -1);
                     ctx.destroySocket(socket);
                     socket = null;
                 }
@@ -161,7 +162,9 @@ public class ZMQAppender extends SerializerAppender {
 
     @Override
     protected  void send(byte[] content) {
-        logQueue.offer(content);
+        if (!logQueue.offer(content)) {
+            errorHandler.error("Log event lost");
+        };
     }
 
     /**
