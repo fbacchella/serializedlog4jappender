@@ -44,6 +44,7 @@ public class ZMQAppenderTest {
                 port.set(socket.bindToRandomPort("tcp://localhost"));
                 return socket;
             }});
+        final Thread testThread = Thread.currentThread();
         Thread receiver = new Thread() {
 
             @Override
@@ -75,37 +76,40 @@ public class ZMQAppenderTest {
 
             @Override
             public void activateOptions() {
-                Assert.fail("activateOptions");
             }
 
             @Override
             public void setLogger(Logger logger) {
-                Assert.fail("setLogger");
+                Assert.fail("setLogger " + logger);
+                testThread.interrupt();
             }
 
             @Override
             public void error(String message, Exception e, int errorCode) {
-                Assert.fail("error");
+                e.printStackTrace();
+                Assert.fail(message);
+                testThread.interrupt();
             }
 
             @Override
             public void error(String message) {
-                Assert.fail("error");
+                Assert.fail(message);
+                testThread.interrupt();
             }
 
             @Override
             public void error(String message, Exception e, int errorCode, LoggingEvent event) {
-                Assert.fail("error");
+                e.printStackTrace();
+                Assert.fail(message);
+                testThread.interrupt();
             }
 
             @Override
             public void setAppender(Appender appender) {
-                Assert.fail("setAppender");
             }
 
             @Override
             public void setBackupAppender(Appender appender) {
-                Assert.fail("setBackupAppender");
             }
 
         });
