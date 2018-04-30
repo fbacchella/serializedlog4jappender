@@ -80,28 +80,40 @@ public class ZMQAppenderTest {
 
             @Override
             public void setLogger(Logger logger) {
-                Assert.fail("setLogger " + logger);
-                testThread.interrupt();
+                try {
+                    Assert.fail("setLogger " + logger);
+                } finally {
+                    testThread.interrupt();
+                }
             }
 
             @Override
             public void error(String message, Exception e, int errorCode) {
                 e.printStackTrace();
-                Assert.fail(message);
-                testThread.interrupt();
+                try {
+                    Assert.fail(message);
+                } finally {
+                    testThread.interrupt();
+                }
             }
 
             @Override
             public void error(String message) {
-                Assert.fail(message);
-                testThread.interrupt();
+                try {
+                    Assert.fail(message);
+                } finally {
+                    testThread.interrupt();
+                }
             }
 
             @Override
             public void error(String message, Exception e, int errorCode, LoggingEvent event) {
                 e.printStackTrace();
-                Assert.fail(message);
-                testThread.interrupt();
+                try {
+                    Assert.fail(message);
+                } finally {
+                    testThread.interrupt();
+                }
             }
 
             @Override
