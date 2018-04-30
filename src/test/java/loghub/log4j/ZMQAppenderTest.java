@@ -143,7 +143,7 @@ public class ZMQAppenderTest {
         for (int i = 0; i < 2 ; i++) {
             threads[count + i].start();
         }
-        if (mutex.tryLock(4000, TimeUnit.MILLISECONDS)) {
+        if (mutex.tryLock(5000, TimeUnit.MILLISECONDS)) {
             mutex.unlock();
         } else {
             Assert.fail("tryLock failed");
