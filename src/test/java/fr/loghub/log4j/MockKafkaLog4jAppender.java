@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package loghub.log4j;
+package fr.loghub.log4j;
 
 import java.util.List;
 import java.util.Properties;
@@ -23,6 +23,8 @@ import org.apache.kafka.clients.producer.MockProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.test.MockSerializer;
+
+import fr.loghub.log4j.KafkaAppender;
 
 public class MockKafkaLog4jAppender extends KafkaAppender {
     private MockProducer<byte[], byte[]> mockProducer =
