@@ -52,7 +52,7 @@ public class ZMQAppenderTest {
                     mutex.tryLock(10, TimeUnit.MILLISECONDS);
                     bindToPort.run();
                     ZMQ.Socket socket = bindToPort.get();
-                    socket.setHWM(count);
+                    socket.setHWM(count + 1);
                     while(received.get() < count) {
                         byte[] buffer = socket.recv();
                         try (ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(buffer))) {
@@ -130,7 +130,7 @@ public class ZMQAppenderTest {
         appender.setType("PUSH");
         appender.activateOptions();
         appender.setSerializer(JavaSerializer.class.getName());
-        appender.setHwm(count);
+        appender.setHwm(count + 1);
         final Thread[] threads = new Thread[10];
         for (int i = 0; i < 10 ; i++) {
             final int subi = i;
@@ -155,12 +155,12 @@ public class ZMQAppenderTest {
                 Assert.fail("tryLock failed");
             };
         } catch (InterruptedException  e) {
-            appender.close();
             for (int i = 0; i < 10 ; i++) {
                 threads[i].interrupt();
                 Assert.fail("Was interrupted");
             }
         }
+        appender.close();
         Assert.assertTrue(received.get() == count);
         ctx.close();
     }
