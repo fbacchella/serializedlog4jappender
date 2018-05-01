@@ -46,7 +46,6 @@ public class ZMQAppenderTest {
             }});
         final Thread testThread = Thread.currentThread();
         Thread receiver = new Thread() {
-
             @Override
             public void run() {
                 try {
@@ -62,7 +61,7 @@ public class ZMQAppenderTest {
                         }
                         received.incrementAndGet();
                     }
-                } catch (ClassNotFoundException  | IOException | InterruptedException | ExecutionException  e) {
+                } catch (ClassNotFoundException | IOException | InterruptedException | ExecutionException e) {
                     throw new RuntimeException(e);
                 } finally {
                     mutex.unlock();
@@ -132,34 +131,22 @@ public class ZMQAppenderTest {
         appender.activateOptions();
         appender.setSerializer(JavaSerializer.class.getName());
         appender.setHwm(count);
-        final Thread[] threads = new Thread[ count + 2];
-        for (int i = 0; i < count ; i++) {
+        final Thread[] threads = new Thread[10];
+        for (int i = 0; i < 10 ; i++) {
             final int subi = i;
             threads[i] = new Thread() {
                 @Override
                 public void run() {
-                    appender.append(new LoggingEvent(ZMQAppenderTest.class.getName(), Logger.getLogger(ZMQAppenderTest.class), Level.FATAL, subi, null));
+                    for (int i = 0 ; i < count / 10 ; i++) {
+                        appender.append(new LoggingEvent(ZMQAppenderTest.class.getName(), Logger.getLogger(ZMQAppenderTest.class), Level.FATAL, subi + "/" + i, null));
+                    }
                 }
             };
             threads[i].setName("Injector" + i);
             threads[i].setDaemon(true);
         }
-        // two thread that start the other threads, to increase parallelism
-        for (int i = 0; i < 2 ; i++) {
-            final int subi = i;
-            threads[count + i] = new Thread() {
-                @Override
-                public void run() {
-                    for (int j = 0; j < (count / 2) ; j++) {
-                        threads[j*2 + subi].start();
-                    }
-                }
-            };
-            threads[count + i].setName("Starter" + i);
-            threads[count].setDaemon(true);
-        }
-        for (int i = 0; i < 2 ; i++) {
-            threads[count + i].start();
+        for (int i = 0; i < 10 ; i++) {
+            threads[i].start();
         }
         if (mutex.tryLock(10000, TimeUnit.MILLISECONDS)) {
             mutex.unlock();
