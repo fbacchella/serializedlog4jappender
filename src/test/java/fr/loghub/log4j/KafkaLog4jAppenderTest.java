@@ -36,7 +36,7 @@ public class KafkaLog4jAppenderTest {
 
     Logger logger = Logger.getLogger(KafkaLog4jAppenderTest.class);
 
-    @Test(timeout=1000, expected=ConfigException.class)
+    @Test(timeout=2000, expected=ConfigException.class)
     public void testKafkaLog4jConfigHostMissing() {
         // host missing
         Properties props = new Properties();
@@ -47,7 +47,7 @@ public class KafkaLog4jAppenderTest {
         PropertyConfigurator.configure(props);
     }
 
-    @Test(timeout=1000, expected=ConfigException.class)
+    @Test(timeout=2000, expected=ConfigException.class)
     public void testKafkaLog4jConfigTopicMissing() {
         // topic missing
         Properties props = new Properties();
@@ -58,7 +58,7 @@ public class KafkaLog4jAppenderTest {
         PropertyConfigurator.configure(props);
     }
 
-    @Test(timeout=1000)
+    @Test(timeout=2000)
     public void testLog4jAppends() throws UnsupportedEncodingException {
         PropertyConfigurator.configure(getLog4jConfig());
 

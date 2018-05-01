@@ -79,7 +79,7 @@ public class ZMQAppender extends SerializerAppender {
             return;
         }
 
-        logQueue = new ArrayBlockingQueue<>(hwm * 3);
+        logQueue = new ArrayBlockingQueue<>(hwm);
         Thread publishingThread = new Thread() {
 
             @Override
