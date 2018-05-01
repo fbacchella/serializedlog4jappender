@@ -59,7 +59,6 @@ public class ZMQAppender extends SerializerAppender {
     private Method method = Method.CONNECT;
     private String endpoint = null;
     private int hwm = 1000;
-    private Thread publishingThread;
     private BlockingQueue<byte[]> logQueue;
 
     public ZMQAppender() {
@@ -80,8 +79,8 @@ public class ZMQAppender extends SerializerAppender {
             return;
         }
 
-        logQueue = new ArrayBlockingQueue<byte[]>(hwm * 3);
-        publishingThread = new Thread() {
+        logQueue = new ArrayBlockingQueue<>(hwm * 3);
+        Thread publishingThread = new Thread() {
 
             @Override
             public void run() {
@@ -111,6 +110,8 @@ public class ZMQAppender extends SerializerAppender {
     private void publishingRun() {
         try {
             while (! isClosed()) {
+                // First check if socket is null.
+                // It might be the first iteration, or the previous socket badly failed and was dropped
                 if (socket == null) {
                     socket = newSocket(method, type, endpoint, hwm, -1);
                     if (socket == null) {
@@ -135,7 +136,7 @@ public class ZMQAppender extends SerializerAppender {
                         // Using hash code if OnlyOnceErrorHandler is used
                         errorHandler.error("Failed ZMQ socket", e, socket.hashCode());
                         synchronized (ctx) {
-                            // If it's not closed, empty the socket, to recreate a new one
+                            // If it's not closed, drop the socket, to recreate a new one
                             if (!isClosed()) {
                                 ctx.destroySocket(socket);
                                 socket = null;
@@ -182,7 +183,7 @@ public class ZMQAppender extends SerializerAppender {
     protected  void send(byte[] content) {
         if (!logQueue.offer(content)) {
             errorHandler.error("Log event lost");
-        };
+        }
     }
 
     /**
@@ -262,16 +263,16 @@ public class ZMQAppender extends SerializerAppender {
             if (isClosed() || ctx.isClosed()) {
                 return null;
             } else {
-                Socket socket = ctx.createSocket(type.ordinal());
-                socket.setRcvHWM(hwm);
-                socket.setSndHWM(hwm);
-                socket.setSendTimeOut(timeout);
-                socket.setReceiveTimeOut(timeout);
-                ;
-                method.act(socket, endpoint);
+                Socket newsocket = ctx.createSocket(type.ordinal());
+                newsocket.setRcvHWM(hwm);
+                newsocket.setSndHWM(hwm);
+                newsocket.setSendTimeOut(timeout);
+                newsocket.setReceiveTimeOut(timeout);
+
+                method.act(newsocket, endpoint);
                 String url = endpoint + ":" + type.toString() + ":" + method.getSymbol();
-                socket.setIdentity(url.getBytes());
-                return socket;
+                newsocket.setIdentity(url.getBytes());
+                return newsocket;
             }
         }
     }
