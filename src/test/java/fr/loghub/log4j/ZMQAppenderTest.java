@@ -148,11 +148,19 @@ public class ZMQAppenderTest {
         for (int i = 0; i < 10 ; i++) {
             threads[i].start();
         }
-        if (mutex.tryLock(10000, TimeUnit.MILLISECONDS)) {
-            mutex.unlock();
-        } else {
-            Assert.fail("tryLock failed");
-        };
+        try {
+            if (mutex.tryLock(10000, TimeUnit.MILLISECONDS)) {
+                mutex.unlock();
+            } else {
+                Assert.fail("tryLock failed");
+            };
+        } catch (InterruptedException  e) {
+            appender.close();
+            for (int i = 0; i < 10 ; i++) {
+                threads[i].interrupt();
+                Assert.fail("Was interrupted");
+            }
+        }
         Assert.assertTrue(received.get() == count);
         ctx.close();
     }
