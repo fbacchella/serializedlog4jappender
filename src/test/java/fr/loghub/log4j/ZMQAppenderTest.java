@@ -126,8 +126,9 @@ public class ZMQAppenderTest {
         appender.setType("PUSH");
         appender.activateOptions();
         appender.setSerializer(JavaSerializer.class.getName());
-        appender.setHwm(count + 1);
+        appender.setHwm(count * 2);
         final Thread[] threads = new Thread[10];
+        final AtomicInteger sends = new AtomicInteger();
         for (int i = 0; i < 10 ; i++) {
             final int subi = i;
             threads[i] = new Thread() {
@@ -135,6 +136,7 @@ public class ZMQAppenderTest {
                 public void run() {
                     for (int i = 0 ; i < count / 10 ; i++) {
                         appender.append(new LoggingEvent(ZMQAppenderTest.class.getName(), Logger.getLogger(ZMQAppenderTest.class), Level.FATAL, subi + "/" + i, null));
+                        sends.incrementAndGet();
                         Thread.yield();
                     }
                 }
@@ -156,6 +158,8 @@ public class ZMQAppenderTest {
                 threads[i].interrupt();
                 Assert.fail("Was interrupted");
             }
+        } finally {
+            System.out.println("" + sends.get() + " was sent");
         }
         appender.close();
         Assert.assertTrue(received.get() == count);
