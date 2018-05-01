@@ -60,6 +60,7 @@ public class ZMQAppenderTest {
                             LoggingEvent o = (LoggingEvent) ois.readObject();
                         }
                         received.incrementAndGet();
+                        Thread.yield();
                     }
                 } catch (ClassNotFoundException | IOException | InterruptedException | ExecutionException e) {
                     throw new RuntimeException(e);
@@ -79,11 +80,6 @@ public class ZMQAppenderTest {
 
             @Override
             public void setLogger(Logger logger) {
-                try {
-                    Assert.fail("setLogger " + logger);
-                } finally {
-                    testThread.interrupt();
-                }
             }
 
             @Override
@@ -139,6 +135,7 @@ public class ZMQAppenderTest {
                 public void run() {
                     for (int i = 0 ; i < count / 10 ; i++) {
                         appender.append(new LoggingEvent(ZMQAppenderTest.class.getName(), Logger.getLogger(ZMQAppenderTest.class), Level.FATAL, subi + "/" + i, null));
+                        Thread.yield();
                     }
                 }
             };
