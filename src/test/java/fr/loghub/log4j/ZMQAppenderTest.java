@@ -28,7 +28,7 @@ import zmq.socket.Sockets;
 
 public class ZMQAppenderTest {
 
-    @Test(timeout=5000)
+    @Test(timeout=10000)
     public void testParallel() throws InterruptedException, ExecutionException, TimeoutException {
         final int count = 5000;
         final ZContext ctx = new ZContext(1);
@@ -44,15 +44,15 @@ public class ZMQAppenderTest {
                 port.set(socket.bindToRandomPort("tcp://localhost"));
                 return socket;
             }});
+        final Thread testThread = Thread.currentThread();
         Thread receiver = new Thread() {
-
             @Override
             public void run() {
                 try {
                     mutex.tryLock(10, TimeUnit.MILLISECONDS);
                     bindToPort.run();
                     ZMQ.Socket socket = bindToPort.get();
-                    socket.setHWM(count);
+                    socket.setHWM(count + 1);
                     while(received.get() < count) {
                         byte[] buffer = socket.recv();
                         try (ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(buffer))) {
@@ -60,8 +60,9 @@ public class ZMQAppenderTest {
                             LoggingEvent o = (LoggingEvent) ois.readObject();
                         }
                         received.incrementAndGet();
+                        Thread.yield();
                     }
-                } catch (ClassNotFoundException  | IOException | InterruptedException | ExecutionException  e) {
+                } catch (ClassNotFoundException | IOException | InterruptedException | ExecutionException e) {
                     throw new RuntimeException(e);
                 } finally {
                     mutex.unlock();
@@ -75,37 +76,47 @@ public class ZMQAppenderTest {
 
             @Override
             public void activateOptions() {
-                Assert.fail("activateOptions");
             }
 
             @Override
             public void setLogger(Logger logger) {
-                Assert.fail("setLogger");
             }
 
             @Override
             public void error(String message, Exception e, int errorCode) {
-                Assert.fail("error");
+                e.printStackTrace();
+                try {
+                    Assert.fail(message);
+                } finally {
+                    testThread.interrupt();
+                }
             }
 
             @Override
             public void error(String message) {
-                Assert.fail("error");
+                try {
+                    Assert.fail(message);
+                } finally {
+                    testThread.interrupt();
+                }
             }
 
             @Override
             public void error(String message, Exception e, int errorCode, LoggingEvent event) {
-                Assert.fail("error");
+                e.printStackTrace();
+                try {
+                    Assert.fail(message);
+                } finally {
+                    testThread.interrupt();
+                }
             }
 
             @Override
             public void setAppender(Appender appender) {
-                Assert.fail("setAppender");
             }
 
             @Override
             public void setBackupAppender(Appender appender) {
-                Assert.fail("setBackupAppender");
             }
 
         });
@@ -115,41 +126,42 @@ public class ZMQAppenderTest {
         appender.setType("PUSH");
         appender.activateOptions();
         appender.setSerializer(JavaSerializer.class.getName());
-        appender.setHwm(count);
-        final Thread[] threads = new Thread[ count + 2];
-        for (int i = 0; i < count ; i++) {
+        appender.setHwm(count * 2);
+        final Thread[] threads = new Thread[10];
+        final AtomicInteger sends = new AtomicInteger();
+        for (int i = 0; i < 10 ; i++) {
             final int subi = i;
             threads[i] = new Thread() {
                 @Override
                 public void run() {
-                    appender.append(new LoggingEvent(ZMQAppenderTest.class.getName(), Logger.getLogger(ZMQAppenderTest.class), Level.FATAL, subi, null));
+                    for (int i = 0 ; i < count / 10 ; i++) {
+                        appender.append(new LoggingEvent(ZMQAppenderTest.class.getName(), Logger.getLogger(ZMQAppenderTest.class), Level.FATAL, subi + "/" + i, null));
+                        sends.incrementAndGet();
+                        Thread.yield();
+                    }
                 }
             };
             threads[i].setName("Injector" + i);
             threads[i].setDaemon(true);
         }
-        // two thread that start the other threads, to increase parallelism
-        for (int i = 0; i < 2 ; i++) {
-            final int subi = i;
-            threads[count + i] = new Thread() {
-                @Override
-                public void run() {
-                    for (int j = 0; j < (count / 2) ; j++) {
-                        threads[j*2 + subi].start();
-                    }
-                }
+        for (int i = 0; i < 10 ; i++) {
+            threads[i].start();
+        }
+        try {
+            if (mutex.tryLock(10000, TimeUnit.MILLISECONDS)) {
+                mutex.unlock();
+            } else {
+                Assert.fail("tryLock failed");
             };
-            threads[count + i].setName("Starter" + i);
-            threads[count].setDaemon(true);
+        } catch (InterruptedException  e) {
+            for (int i = 0; i < 10 ; i++) {
+                threads[i].interrupt();
+                Assert.fail("Was interrupted");
+            }
+        } finally {
+            System.out.println("" + sends.get() + " was sent");
         }
-        for (int i = 0; i < 2 ; i++) {
-            threads[count + i].start();
-        }
-        if (mutex.tryLock(5000, TimeUnit.MILLISECONDS)) {
-            mutex.unlock();
-        } else {
-            Assert.fail("tryLock failed");
-        };
+        appender.close();
         Assert.assertTrue(received.get() == count);
         ctx.close();
     }

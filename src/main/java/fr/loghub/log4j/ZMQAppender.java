@@ -2,6 +2,7 @@ package fr.loghub.log4j;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.spi.ErrorCode;
 import org.apache.log4j.spi.LoggingEvent;
@@ -58,7 +59,6 @@ public class ZMQAppender extends SerializerAppender {
     private Method method = Method.CONNECT;
     private String endpoint = null;
     private int hwm = 1000;
-    private Thread publishingThread;
     private BlockingQueue<byte[]> logQueue;
 
     public ZMQAppender() {
@@ -79,8 +79,8 @@ public class ZMQAppender extends SerializerAppender {
             return;
         }
 
-        logQueue = new ArrayBlockingQueue<byte[]>(1000);
-        publishingThread = new Thread() {
+        logQueue = new ArrayBlockingQueue<>(hwm);
+        Thread publishingThread = new Thread() {
 
             @Override
             public void run() {
@@ -109,32 +109,50 @@ public class ZMQAppender extends SerializerAppender {
 
     private void publishingRun() {
         try {
-            while ( ! Thread.currentThread().isInterrupted() && ! isClosed()) {
-                if (socket == null && ! ctx.isClosed()) {
+            while (! isClosed()) {
+                // First check if socket is null.
+                // It might be the first iteration, or the previous socket badly failed and was dropped
+                if (socket == null) {
                     socket = newSocket(method, type, endpoint, hwm, -1);
-                    socket.setLinger(100);
-                } else if (ctx.isClosed()) {
-                    break;
-                }
-                byte[] log = logQueue.take();
-                try {
-                    if(! isClosed()) {
-                        // An assert to failed during tests but not during run
-                        boolean sended = socket.send(log);
-                        assert sended : "failed sending";
+                    if (socket == null) {
+                        // No socket returned, appender was closed
+                        break;
                     }
-                } catch (zmq.ZError.IOException | java.nio.channels.ClosedSelectorException | org.zeromq.ZMQException e ) {
-                    ctx.destroySocket(socket);
-                    socket = null;
+                    socket.setLinger(100);
+                }
+                // Not a blocking wait, it allows to test if closed every 100 ms
+                // Needed because interrupt deactivated for this thread
+                byte[] log = logQueue.poll(100, TimeUnit.MILLISECONDS);
+                if (log != null) {
+                    try {
+                        synchronized (ctx) {
+                            if (!isClosed()) {
+                                boolean sended = socket.send(log, zmq.ZMQ.ZMQ_DONTWAIT);
+                                // An assert to failed during tests but not during run
+                                assert sended : "failed sending";
+                            }
+                        }
+                    } catch (zmq.ZError.IOException | java.nio.channels.ClosedSelectorException | org.zeromq.ZMQException e) {
+                        // Using hash code if OnlyOnceErrorHandler is used
+                        errorHandler.error("Failed ZMQ socket", e, socket.hashCode());
+                        synchronized (ctx) {
+                            // If it's not closed, drop the socket, to recreate a new one
+                            if (!isClosed()) {
+                                ctx.destroySocket(socket);
+                                socket = null;
+                            }
+                        }
+                    } 
                 }
             }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            // Interrupt deactivated, so never happens
         }
+        close();
     }
 
     /**
-     * A synchonized method, to ensure write barrier for closed, wich is not volatile
+     * A synchonized method, to ensure write barrier for closed, which is not volatile
      * @return
      */
     private synchronized boolean isClosed() {
@@ -145,13 +163,15 @@ public class ZMQAppender extends SerializerAppender {
         if (isClosed()) {
             return;
         }
-        synchronized(this) {
-            closed = false;
-        }
-        ctx.destroySocket(socket);
-        socket = null;
-        if(localCtx) {
-            ctx.destroy();
+        synchronized (ctx) {
+            synchronized(this) {
+                closed = false;
+            }
+            ctx.destroySocket(socket);
+            socket = null;
+            if(localCtx) {
+                ctx.destroy();
+            }
         }
     }
 
@@ -161,7 +181,9 @@ public class ZMQAppender extends SerializerAppender {
 
     @Override
     protected  void send(byte[] content) {
-        logQueue.offer(content);
+        if (!logQueue.offer(content)) {
+            errorHandler.error("Log event lost");
+        }
     }
 
     /**
@@ -237,15 +259,22 @@ public class ZMQAppender extends SerializerAppender {
     }
 
     private Socket newSocket(Method method, Sockets type, String endpoint, int hwm, int timeout) {
-        Socket socket = ctx.createSocket(type.ordinal());
-        socket.setRcvHWM(hwm);
-        socket.setSndHWM(hwm);
-        socket.setSendTimeOut(timeout);
-        socket.setReceiveTimeOut(timeout);;
-        method.act(socket, endpoint);
-        String url = endpoint + ":" + type.toString() + ":" + method.getSymbol();
-        socket.setIdentity(url.getBytes());
-        return socket;
+        synchronized (ctx) {
+            if (isClosed() || ctx.isClosed()) {
+                return null;
+            } else {
+                Socket newsocket = ctx.createSocket(type.ordinal());
+                newsocket.setRcvHWM(hwm);
+                newsocket.setSndHWM(hwm);
+                newsocket.setSendTimeOut(timeout);
+                newsocket.setReceiveTimeOut(timeout);
+
+                method.act(newsocket, endpoint);
+                String url = endpoint + ":" + type.toString() + ":" + method.getSymbol();
+                newsocket.setIdentity(url.getBytes());
+                return newsocket;
+            }
+        }
     }
 
 }
