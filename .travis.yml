@@ -1,10 +1,24 @@
 language: java
 jdk:
-    - oraclejdk8
-    - oraclejdk9
+  - openjdk8
+  - openjdk9
 cache:
   directories:
   - $HOME/.m2
 notifications:
   irc:
   - irc.freenode.org#jrds
+addons:
+  sonarcloud:
+    organization: rrd4j
+    token:
+      secure: "Gr5od7EBRfrHYP0q+0BVHUWxxl2dKzK5F5UeIH8h+eAqE8aroEPzzHraoHSgAh59Ie4ljvHPQPCjUqJpaO/LxIxjZkWBGVWAJQeIZMGhcUHc/1Je3otTwYbqKcNPP3ZuRf31q7SX83yygdUqDczT8tRTH63lmpTK9Ae6ffDHbA/NZF+/1u5lGGirw2kYY2g5aZ5yxRVURTcODCvXvpUy/aPA5w3r0Bk7fbvTQfedFUZPj1MVjCGt8WJo8Mgv6h1bfsl2vWnfpzlu8gyaYADHgVqO7ogS8EQwt/P8SJnH6qxUrHTEf46BWs49p1gCh+2HZukqNgJYcoYaYAhIjogv7BYr6Oli9p7qppQAAUNlxyrAaj4XCn5iCMEs+BBGdYBMd71ub5CyIat0kdOnLU7x6VUAykUXoze5goDmYKYeGKTT9YlSZ+Rju8LDaJfEdRqZz01zbNbUjAtTjBEn3DONRbujHWa9pOdQLTuV0z8jExMrn7zDiv9xNBlC1FeX+uQRTQ5AC9u/5mGp8o7WgGczj42xj97dApCNgypMllXwQPHmqGRJ/PEodjVAoq4X/i7CNtXf3LZUYIjPCYGNv91qHxBRbs+BOKNPSGE1m6T7lDNI5F9T4G7KAEUax5+jLr7nOdmftRylOkfsWXD5AqZKyi5pxdOB8hPWDUClTGX04mY="
+matrix:
+  include:
+    - jdk: openjdk10
+      script:
+        - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package sonar:sonar
+      on:
+          branch: master
+script:
+  - mvn clean package
