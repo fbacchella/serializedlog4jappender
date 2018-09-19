@@ -30,7 +30,7 @@ public class ZMQAppenderTest {
 
     @Test(timeout=10000)
     public void testParallel() throws InterruptedException, ExecutionException, TimeoutException {
-        final int count = 5000;
+        final int count = 1000;
         final ZContext ctx = new ZContext(1);
         ctx.getContext();
         ctx.setLinger(0);
@@ -126,7 +126,7 @@ public class ZMQAppenderTest {
         appender.setType("PUSH");
         appender.activateOptions();
         appender.setSerializer(JavaSerializer.class.getName());
-        appender.setHwm(count * 2);
+        appender.setHwm(count * 11);
         final Thread[] threads = new Thread[10];
         final AtomicInteger sends = new AtomicInteger();
         for (int i = 0; i < 10 ; i++) {

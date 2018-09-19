@@ -28,20 +28,23 @@ public abstract class SerializerAppender extends AppenderSkeleton {
             Class<? extends Serializer> c = (Class<? extends Serializer>) getClass().getClassLoader().loadClass(serializerName);
             serializer = c.getConstructor().newInstance();
         } catch (ClassCastException | ClassNotFoundException | IllegalArgumentException | SecurityException | InstantiationException | IllegalAccessException 
-                | NoSuchMethodException e) {
+                        | NoSuchMethodException e) {
             errorHandler.error("failed to create serializer", e, ErrorCode.GENERIC_FAILURE);
+            return;
         } catch (InvocationTargetException e) {
             if (e.getCause() instanceof Exception) {
                 errorHandler.error("failed to create serializer", (Exception) e.getCause(), ErrorCode.GENERIC_FAILURE);
             } else {
                 errorHandler.error("failed to create serializer", e, ErrorCode.GENERIC_FAILURE);
             }
+            return;
         }
         if (hostname == null) {
             try {
                 hostname = InetAddress.getLocalHost().getHostName();
             } catch (UnknownHostException e) {
                 errorHandler.error(e.getMessage(), e, ErrorCode.GENERIC_FAILURE);
+                return;
             } 
         }
         subOptions();
@@ -56,8 +59,8 @@ public abstract class SerializerAppender extends AppenderSkeleton {
 
         // The event is copied, because a host field is added in the properties
         LoggingEvent modifiedEvent = new LoggingEvent(event.getFQNOfLoggerClass(), event.getLogger(), event.getTimeStamp(), event.getLevel(), event.getMessage(),
-                event.getThreadName(), event.getThrowableInformation(), event.getNDC(), locationInfo ? event.getLocationInformation() : null,
-                        new HashMap<String,String>(eventProps));
+                                                      event.getThreadName(), event.getThrowableInformation(), event.getNDC(),
+                                                      locationInfo ? event.getLocationInformation() : null, new HashMap<String,String>(eventProps));
 
         if (application != null) {
             modifiedEvent.setProperty("application", application);
