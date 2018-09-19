@@ -165,7 +165,7 @@ public class ZMQAppender extends SerializerAppender {
         }
         synchronized (ctx) {
             synchronized(this) {
-                closed = false;
+                closed = true;
             }
             ctx.destroySocket(socket);
             socket = null;
