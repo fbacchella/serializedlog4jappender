@@ -3,7 +3,7 @@
     "name": "${project.name}",
     "repo": "maven",
     "subject": "fbacchella",
-    "desc": "Snmpcodec is a resilient snmp parser and formater.",
+    "desc": "A appender for log4j that serialize events instead of formating them",
     "website_url": "https://github.com/fbacchella/serializedlog4jappender",
     "issue_tracker_url": "https://github.com/fbacchella/serializedlog4jappender/issues",
     "vcs_url": "https://github.com/fbacchella/serializedlog4jappender.git",
@@ -18,14 +18,10 @@
     "name": "${project.version}"
   },
   "files": [
-    {
-      "includePattern": "target/(.*\\.jar)",
-      "uploadPattern": "/fr/loghub/${project.name}/${project.version}/$1"
-    },
-    {
-      "includePattern": "pom.xml",
-      "uploadPattern": "/fr/loghub/${project.name}/${project.version}/${project.name}-${project.version}.pom"
-    }
+      {
+        "includePattern": "target/deploy/(fr/loghub/serializedlog4jappender/${project.version}/.*)",
+        "uploadPattern": "$1"
+      }
   ],
   "publish": true
 }
