@@ -311,7 +311,10 @@ public class KafkaAppender extends SerializerAppender {
             if (syncSend) {
                 response.get();
             }
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
+            errorHandler.error("failed to send event", e, ErrorCode.FLUSH_FAILURE);
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException e) {
             errorHandler.error("failed to send event", e, ErrorCode.FLUSH_FAILURE);
         }
     }
